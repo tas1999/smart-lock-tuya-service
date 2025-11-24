@@ -7,8 +7,10 @@ import (
 
 	"github.com/tas1999/tuya-connector-go/connector"
 	"github.com/tas1999/tuya-connector-go/connector/logger"
+	// "main/gen/go/password"
 )
 
+// protoc -I tuya-smart-lock-proto tuya-smart-lock-proto/password.proto --go_out=./gen/go/ --go_opt=paths=source_relative --go-grpc_out=./gen/go/ --go-grpc_opt=paths=source_relative
 type GenerateOfflineTemporaryPasswordReq struct {
 	Name          string       `json:"name"`
 	EffectiveTime int64        `json:"effective_time"`
@@ -35,6 +37,13 @@ type GenerateOfflineTemporaryPasswordResponse struct {
 	Code int    `json:"code"`
 	Msg  string `json:"msg"`
 }
+
+// type PasswordService struct{
+
+// }
+// func(p *PasswordService) GenerateOfflineTemporaryPassword(context.Context, *GenerateOfflineTemporaryPasswordRequest) (*GenerateOfflineTemporaryPasswordResponse, error){
+
+// }
 
 func GenerateNewPassword(req GenerateOfflineTemporaryPasswordReq) (string, error) {
 
