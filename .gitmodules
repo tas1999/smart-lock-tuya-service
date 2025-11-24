@@ -1,0 +1,3 @@
+[submodule "tuya-smart-lock-proto"]
+	path = tuya-smart-lock-proto
+	url = https://github.com/tas1999/tuya-smart-lock-proto
