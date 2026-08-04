@@ -1,0 +1,21 @@
+# US server: SmartLock (Tuya online temp passwords + Pulsar → webhook)
+
+services:
+  smartlock:
+    image: registry.gitlab.com/aksck/smartlock:${SMARTLOCK_TAG:-latest}
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    container_name: smartlock-us
+    restart: unless-stopped
+    ports:
+      - "50051:50051"
+    environment:
+      - TUYA_ACCESSID=kw5q5yxtuyhd9kd887pp
+      - TUYA_ACCESSKEY=a5c22a3dc9a04229b94a9b228d75e3cb
+      - API_KEY=8f3c1a9e2b7450d6e9f1a2c3b4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f7a
+      - GRPC_ADDR=:50051
+      - WEBHOOK_URL=https://aksstudio.ru/api/integrations/smart-lock/events
+      - EVENT_MATCH_DEVICE_IDS=bf22adc2ea2e5d66bdwdcc
+      - EVENT_MATCH_DP_CODES=unlock_temporary,unlock_password
+      - TUYA_DEBUG=false

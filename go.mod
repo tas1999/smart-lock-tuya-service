@@ -1,4 +1,4 @@
-module main
+module github.com/tas1999/smart-lock-tuya-service
 
 go 1.24.0
 

@@ -22,7 +22,7 @@ _testmain.go
 .env
 *.log
 
-/gen
+# /gen  # commit generated stubs for CI
 /.vscode
 /VERSION.cache
 /bin/

@@ -1,0 +1,75 @@
+# SmartLock CI: build on local runner (tags: build,docker), deploy on US (tags: deploy-us).
+# Registry: registry.gitlab.com/aksck/smartlock
+
+variables:
+  DOCKER_TLS_CERTDIR: ""
+  IMAGE_TAG: $CI_COMMIT_SHORT_SHA
+  REGISTRY: $CI_REGISTRY_IMAGE
+  GIT_SUBMODULE_STRATEGY: recursive
+  GIT_SUBMODULE_UPDATE_STRATEGY: normal
+
+stages:
+  - build
+  - deploy
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - when: never
+
+.docker_build:
+  stage: build
+  tags:
+    - build
+    - docker
+  image: docker:27
+  services: []
+  cache: []
+  before_script:
+    - docker info
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+
+build:smartlock:
+  extends: .docker_build
+  script:
+    - docker build -t "$REGISTRY:$IMAGE_TAG" -t "$REGISTRY:latest" .
+    - docker push "$REGISTRY:$IMAGE_TAG"
+    - docker push "$REGISTRY:latest"
+
+.deploy_us:
+  stage: deploy
+  tags:
+    - deploy-us
+  needs:
+    - build:smartlock
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "merge_request_event"
+      when: on_success
+    - when: never
+  variables:
+    GIT_SUBMODULE_STRATEGY: none
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+    - export SMARTLOCK_TAG="$IMAGE_TAG"
+    - docker compose version
+
+deploy:us:smartlock:
+  extends: .deploy_us
+  script:
+    - |
+      set -euo pipefail
+      cd "$CI_PROJECT_DIR/deploy/us"
+      docker ps -a --format '{{.Names}}' | grep -E '^[a-f0-9]+_smartlock-us$' | xargs -r docker rm -f || true
+      docker compose -p smartlock pull
+      docker compose -p smartlock up -d --no-build --remove-orphans --force-recreate
+      cnt=$(docker ps --format '{{.Names}}' | grep -c '^smartlock-us$' || true)
+      if [ "$cnt" -ne 1 ]; then
+        echo "ERROR: expected exactly 1 running container named smartlock-us, found $cnt"
+        docker ps -a --filter name=smartlock-us
+        exit 1
+      fi
+      docker ps --filter name=smartlock-us --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}'
+      echo "OK: unique running container smartlock-us"
+  environment:
+    name: production/us-smartlock
